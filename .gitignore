@@ -1,0 +1,23 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.env
+
+# Secrets — jamais sur Git
+*.key
+*.pem
+*.crt
+vault-token.txt
+sealed-secret-key.txt
+
+# Kubernetes
+kubeconfig
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
