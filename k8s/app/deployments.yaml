@@ -1,0 +1,216 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: service-auth-sa
+  namespace: app
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: service-auth
+  namespace: app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: service-auth
+  template:
+    metadata:
+      labels:
+        app: service-auth
+    spec:
+      serviceAccountName: service-auth-sa
+      containers:
+      - name: service-auth
+        image: service-auth:1.0
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 8080
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: service-auth
+  namespace: app
+spec:
+  selector:
+    app: service-auth
+  ports:
+  - name: http
+    port: 8080
+    targetPort: 8080
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: service-orders-sa
+  namespace: app
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: service-orders
+  namespace: app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: service-orders
+  template:
+    metadata:
+      labels:
+        app: service-orders
+    spec:
+      serviceAccountName: service-orders-sa
+      containers:
+      - name: service-orders
+        image: service-orders:1.0
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 8080
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: service-orders
+  namespace: app
+spec:
+  selector:
+    app: service-orders
+  ports:
+  - name: http
+    port: 8080
+    targetPort: 8080
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: service-payment-sa
+  namespace: app
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: service-payment
+  namespace: app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: service-payment
+  template:
+    metadata:
+      labels:
+        app: service-payment
+    spec:
+      serviceAccountName: service-payment-sa
+      containers:
+      - name: service-payment
+        image: service-payment:1.0
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 8080
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: service-payment
+  namespace: app
+spec:
+  selector:
+    app: service-payment
+  ports:
+  - name: http
+    port: 8080
+    targetPort: 8080
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: service-notification-sa
+  namespace: app
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: service-notification
+  namespace: app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: service-notification
+  template:
+    metadata:
+      labels:
+        app: service-notification
+    spec:
+      serviceAccountName: service-notification-sa
+      containers:
+      - name: service-notification
+        image: service-notification:1.0
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 8080
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: service-notification
+  namespace: app
+spec:
+  selector:
+    app: service-notification
+  ports:
+  - name: http
+    port: 8080
+    targetPort: 8080
