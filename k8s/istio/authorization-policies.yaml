@@ -1,0 +1,92 @@
+# Règle 0 : tout est interdit par défaut dans le namespace app
+---
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: deny-all
+  namespace: app
+spec: {}
+
+# Règle 1 : service-orders peut appeler service-auth
+---
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-orders-to-auth
+  namespace: app
+spec:
+  selector:
+    matchLabels:
+      app: service-auth
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        principals:
+        - "cluster.local/ns/app/sa/service-orders-sa"
+    to:
+    - operation:
+        methods: ["GET", "POST"]
+
+# Règle 2 : service-orders peut appeler service-payment
+---
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-orders-to-payment
+  namespace: app
+spec:
+  selector:
+    matchLabels:
+      app: service-payment
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        principals:
+        - "cluster.local/ns/app/sa/service-orders-sa"
+    to:
+    - operation:
+        methods: ["GET", "POST"]
+
+# Règle 3 : service-payment peut appeler service-notification
+---
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-payment-to-notification
+  namespace: app
+spec:
+  selector:
+    matchLabels:
+      app: service-notification
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        principals:
+        - "cluster.local/ns/app/sa/service-payment-sa"
+    to:
+    - operation:
+        methods: ["GET", "POST"]
+
+# Règle 4 : service-auth peut appeler service-notification
+---
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-auth-to-notification
+  namespace: app
+spec:
+  selector:
+    matchLabels:
+      app: service-notification
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        principals:
+        - "cluster.local/ns/app/sa/service-auth-sa"
+    to:
+    - operation:
+        methods: ["GET", "POST"]
