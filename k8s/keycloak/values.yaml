@@ -1,0 +1,21 @@
+auth:
+  adminUser: admin
+  adminPassword: "admin-zero-trust-2026"
+
+service:
+  type: ClusterIP
+  ports:
+    http: 8080
+
+replicaCount: 1
+
+postgresql:
+  enabled: true
+
+resources:
+  requests:
+    memory: "512Mi"
+    cpu: "250m"
+  limits:
+    memory: "1Gi"
+    cpu: "500m"
