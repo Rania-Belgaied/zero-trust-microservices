@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: opa-v2
+  namespace: security
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: opa-v2
+  template:
+    metadata:
+      labels:
+        app: opa-v2
+    spec:
+      containers:
+      - name: opa
+        image: openpolicyagent/opa:0.57.0
+        imagePullPolicy: Never
+        args:
+          - "run"
+          - "--server"
+          - "--addr=0.0.0.0:8181"
+          - "--log-level=info"
+          - "/policies/microservices-authz.rego"
+        ports:
+        - containerPort: 8181
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8181
+          initialDelaySeconds: 10
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8181
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        volumeMounts:
+        - name: policies
+          mountPath: /policies
+          readOnly: true
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "500m"
+      volumes:
+      - name: policies
+        configMap:
+          name: opa-policies
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: opa
+  namespace: security
+spec:
+  selector:
+    app: opa-v2
+  ports:
+  - name: http
+    port: 8181
+    targetPort: 8181
