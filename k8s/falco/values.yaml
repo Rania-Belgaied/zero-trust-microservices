@@ -1,0 +1,65 @@
+driver:
+  kind: modern_ebpf
+
+falcosidekick:
+  enabled: true
+  config:
+    prometheus:
+      port: 2802
+
+customRules:
+  custom-rules.yaml: |-
+    - macro: our_container
+      condition: >
+        container.id != host and
+        (container.name contains "service-auth" or
+         container.name contains "service-orders" or
+         container.name contains "service-payment" or
+         container.name contains "service-notification")
+
+    - rule: Shell in microservice
+      desc: Shell ouvert dans un de nos microservices
+      condition: >
+        (evt.type in (execve, execveat)) and
+        our_container and
+        (proc.name = bash or proc.name = sh or
+         proc.name = zsh or proc.name = dash)
+      output: >
+        shell in microservice |
+        user=%user.name container_id=%container.id container_name=%container.name
+        shell=%proc.name parent=%proc.pname cmdline=%proc.cmdline
+      priority: CRITICAL
+      tags: [security, shell, zero-trust]
+
+    - rule: Sensitive file read in microservice
+      desc: Lecture de fichier sensible dans nos conteneurs
+      condition: >
+        (evt.type = openat or evt.type = open) and
+        our_container and
+        (fd.name = /etc/shadow or fd.name = /etc/passwd or
+         fd.name = /root/.ssh/id_rsa)
+      output: >
+        sensitive file read in microservice |
+        user=%user.name container_id=%container.id container_name=%container.name
+        file=%fd.name proc=%proc.name cmdline=%proc.cmdline
+      priority: ERROR
+      tags: [security, data-exfiltration, zero-trust]
+
+    - rule: Unexpected outbound connection in microservice
+      desc: Connexion reseau inattendue depuis nos services
+      condition: >
+        (evt.type = connect) and
+        our_container
+      output: >
+        unexpected outbound connection |
+        user=%user.name container_id=%container.id container_name=%container.name
+        dst=%fd.sip sport=%fd.sport proc=%proc.name
+      priority: WARNING
+      tags: [security, network, zero-trust]
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
