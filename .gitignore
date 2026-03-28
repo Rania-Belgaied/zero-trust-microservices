@@ -1,19 +1,22 @@
 # Python
-venv/
 __pycache__/
 *.pyc
 *.pyo
 .env
+venv/
 
-# Secrets — jamais sur Git
+# Secrets
 *.key
 *.pem
-*.crt
 vault-token.txt
-sealed-secret-key.txt
+*.secret
 
-# Kubernetes
-kubeconfig
+# Kubernetes secrets non scellés
+*-secret.yaml
+!sealed-*.yaml
+
+# Docker
+.docker/
 
 # IDE
 .vscode/
@@ -21,3 +24,7 @@ kubeconfig
 
 # OS
 .DS_Store
+Thumbs.db
+
+# Logs
+*.log

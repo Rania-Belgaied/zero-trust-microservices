@@ -1,0 +1,60 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cca
+  namespace: agents
+  labels:
+    app: cca
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cca
+  template:
+    metadata:
+      labels:
+        app: cca
+    spec:
+      serviceAccountName: lsa-agent-sa
+      containers:
+      - name: cca
+        image: cca-agent:1.0
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 8080
+          name: http
+        - containerPort: 8080
+          name: metrics
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cca
+  namespace: agents
+spec:
+  selector:
+    app: cca
+  ports:
+  - name: http
+    port: 8080
+    targetPort: 8080

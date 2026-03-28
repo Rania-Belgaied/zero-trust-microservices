@@ -1,0 +1,41 @@
+grafana:
+  adminPassword: grafana-zero-trust-2026
+  sidecar:
+    dashboards:
+      enabled: true
+
+prometheus:
+  prometheusSpec:
+    serviceMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelectorNilUsesHelmValues: false
+    retention: 15d
+    additionalScrapeConfigs:
+      - job_name: 'lsa-agents'
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names: [agents]
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            regex: 'lsa-.*'
+            action: keep
+          - source_labels: [__meta_kubernetes_pod_ip]
+            replacement: '${1}:9090'
+            target_label: __address__
+
+      - job_name: 'cca-agent'
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names: [agents]
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            regex: 'cca'
+            action: keep
+          - source_labels: [__meta_kubernetes_pod_ip]
+            replacement: '${1}:8080'
+            target_label: __address__
+
+      - job_name: 'falcosidekick'
+        static_configs:
+          - targets: ['falco-falcosidekick.security.svc.cluster.local:2801']

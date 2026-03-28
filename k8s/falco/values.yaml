@@ -9,6 +9,8 @@ falcosidekick:
 
 customRules:
   custom-rules.yaml: |-
+
+
     - macro: our_container
       condition: >
         container.id != host and
@@ -16,6 +18,19 @@ customRules:
          container.name contains "service-orders" or
          container.name contains "service-payment" or
          container.name contains "service-notification")
+
+    - macro: outbound
+      condition: >
+        ((evt.type = connect) or
+         (fd.typechar = 4 or fd.typechar = 6) and
+         (fd.ip != "0.0.0.0" and fd.net != "127.0.0.0/8") and 
+         (evt.rawres >= 0 or evt.res = EINPROGRESS))
+
+    - macro: internal_traffic
+      condition: >
+        (fd.net = "10.0.0.0/8" or 
+         fd.net = "172.16.0.0/12" or 
+         fd.net = "192.168.0.0/16")
 
     - rule: Shell in microservice
       desc: Shell ouvert dans un de nos microservices
@@ -46,10 +61,9 @@ customRules:
       tags: [security, data-exfiltration, zero-trust]
 
     - rule: Unexpected outbound connection in microservice
-      desc: Connexion reseau inattendue depuis nos services
+      desc: Connexion reseau vers IP extrene au cluster
       condition: >
-        (evt.type = connect) and
-        our_container
+        outbound and our_container and not internal_traffic
       output: >
         unexpected outbound connection |
         user=%user.name container_id=%container.id container_name=%container.name

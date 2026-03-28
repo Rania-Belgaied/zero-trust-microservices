@@ -1,0 +1,193 @@
+{
+  "title": "Zero-Trust Security Dashboard",
+  "uid": "zero-trust-main",
+  "timezone": "browser",
+  "refresh": "15s",
+  "time": {"from": "now-30m", "to": "now"},
+  "panels": [
+    {
+      "id": 1,
+      "title": "🛡️ Score de sécurité — Vue globale",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 24, "x": 0, "y": 0},
+      "targets": [{
+        "expr": "security_score_total",
+        "legendFormat": "{{service}}"
+      }],
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "reduceOptions": {"calcs": ["lastNotNull"]}
+      },
+      "fieldConfig": {
+        "defaults": {
+          "min": 0, "max": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "red", "value": 0},
+              {"color": "orange", "value": 0.5},
+              {"color": "green", "value": 0.8}
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 2,
+      "title": "📈 Évolution des scores (30 min)",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 16, "x": 0, "y": 4},
+      "targets": [{
+        "expr": "security_score_total",
+        "legendFormat": "{{service}} [{{status}}]"
+      }],
+      "fieldConfig": {
+        "defaults": {
+          "min": 0, "max": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "red", "value": 0},
+              {"color": "orange", "value": 0.5},
+              {"color": "green", "value": 0.8}
+            ]
+          },
+          "custom": {"lineWidth": 2, "fillOpacity": 10}
+        }
+      }
+    },
+    {
+      "id": 3,
+      "title": "⚠️ Services isolés (score < 0.5)",
+      "type": "stat",
+      "gridPos": {"h": 8, "w": 8, "x": 16, "y": 4},
+      "targets": [{
+        "expr": "security_score_total < 0.5",
+        "legendFormat": "🚨 {{service}}"
+      }],
+      "options": {
+        "colorMode": "background",
+        "noValue": "✅ Aucun service isolé"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "min": 0, "max": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [{"color": "red", "value": 0}]
+          }
+        }
+      }
+    },
+    {
+      "id": 4,
+      "title": "🔐 Composante I — Intégrité (violations OPA)",
+      "type": "timeseries",
+      "gridPos": {"h": 7, "w": 12, "x": 0, "y": 12},
+      "targets": [{
+        "expr": "security_score{component=\"I\"}",
+        "legendFormat": "{{service}}"
+      }],
+      "fieldConfig": {
+        "defaults": {"min": 0, "max": 1,
+          "thresholds": {"mode": "absolute", "steps": [
+            {"color": "red", "value": 0},
+            {"color": "orange", "value": 0.7},
+            {"color": "green", "value": 0.9}
+          ]}
+        }
+      }
+    },
+    {
+      "id": 5,
+      "title": "🔒 Composante C — Confidentialité (mTLS)",
+      "type": "timeseries",
+      "gridPos": {"h": 7, "w": 12, "x": 12, "y": 12},
+      "targets": [{
+        "expr": "security_score{component=\"C\"}",
+        "legendFormat": "{{service}}"
+      }],
+      "fieldConfig": {
+        "defaults": {"min": 0, "max": 1,
+          "thresholds": {"mode": "absolute", "steps": [
+            {"color": "red", "value": 0},
+            {"color": "orange", "value": 0.7},
+            {"color": "green", "value": 0.9}
+          ]}
+        }
+      }
+    },
+    {
+      "id": 6,
+      "title": "🎯 Détail composantes C/I/B/P/R par service",
+      "type": "bargauge",
+      "gridPos": {"h": 7, "w": 24, "x": 0, "y": 19},
+      "targets": [{
+        "expr": "security_score",
+        "legendFormat": "{{service}} — {{component}}"
+      }],
+      "options": {
+        "orientation": "horizontal",
+        "reduceOptions": {"calcs": ["lastNotNull"]}
+      },
+      "fieldConfig": {
+        "defaults": {
+          "min": 0, "max": 1,
+          "thresholds": {"mode": "absolute", "steps": [
+            {"color": "red", "value": 0},
+            {"color": "orange", "value": 0.5},
+            {"color": "green", "value": 0.8}
+          ]}
+        }
+      }
+    },
+    {
+      "id": 7,
+      "title": "📊 Scores CCA (vue agrégée)",
+      "type": "gauge",
+      "gridPos": {"h": 7, "w": 12, "x": 0, "y": 26},
+      "targets": [{
+        "expr": "cca_service_score",
+        "legendFormat": "{{service}}"
+      }],
+      "options": {
+        "reduceOptions": {"calcs": ["lastNotNull"]}
+      },
+      "fieldConfig": {
+        "defaults": {
+          "min": 0, "max": 1,
+          "thresholds": {"mode": "absolute", "steps": [
+            {"color": "red", "value": 0},
+            {"color": "orange", "value": 0.5},
+            {"color": "green", "value": 0.8}
+          ]}
+        }
+      }
+    },
+    {
+      "id": 8,
+      "title": "📋 Table — État détaillé des services",
+      "type": "table",
+      "gridPos": {"h": 7, "w": 12, "x": 12, "y": 26},
+      "targets": [
+        {
+          "expr": "security_score_total",
+          "legendFormat": "Score total — {{service}}",
+          "instant": true
+        },
+        {
+          "expr": "security_score{component=\"I\"}",
+          "legendFormat": "Intégrité — {{service}}",
+          "instant": true
+        },
+        {
+          "expr": "security_score{component=\"C\"}",
+          "legendFormat": "Confidentialité — {{service}}",
+          "instant": true
+        }
+      ],
+      "options": {"sortBy": [{"displayName": "Score total", "desc": true}]}
+    }
+  ]
+}
