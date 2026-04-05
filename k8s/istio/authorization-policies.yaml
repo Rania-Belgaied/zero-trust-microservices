@@ -26,7 +26,13 @@ spec:
         - "cluster.local/ns/app/sa/service-orders-sa"
     to:
     - operation:
-        methods: ["GET", "POST"]
+        methods: ["POST"]
+        paths: ["/api/login", "/api/verify"]
+        ports: ["8080"]
+    - operation:
+        methods: ["GET"]
+        paths: ["/api/verify", "/api/status"]
+        ports: ["8080"]
 
 # Règle 2 : service-orders peut appeler service-payment
 ---
@@ -47,7 +53,13 @@ spec:
         - "cluster.local/ns/app/sa/service-orders-sa"
     to:
     - operation:
-        methods: ["GET", "POST"]
+        methods: ["POST"]
+        paths: ["/api/payments", "/api/payments/process"]
+        ports: ["8080"]
+    - operation:
+        methods: ["GET"]
+        paths: ["/api/payments/status", "/api/payments/*/status"]
+        ports: ["8080"]
 
 # Règle 3 : service-payment peut appeler service-notification
 ---
@@ -68,7 +80,9 @@ spec:
         - "cluster.local/ns/app/sa/service-payment-sa"
     to:
     - operation:
-        methods: ["GET", "POST"]
+        methods: ["POST"]
+        paths: ["/api/notify", "/api/notifications"]
+        ports: ["8080"]
 
 # Règle 4 : service-auth peut appeler service-notification
 ---
@@ -89,4 +103,49 @@ spec:
         - "cluster.local/ns/app/sa/service-auth-sa"
     to:
     - operation:
-        methods: ["GET", "POST"]
+        methods: ["POST"]
+        paths: ["/api/notify", "/api/notifications"]
+        ports: ["8080"]
+
+# Règle 5 : service-payment → service-auth
+---
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-payment-to-auth
+  namespace: app
+spec:
+  selector:
+    matchLabels:
+      app: service-auth
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        principals:
+        - "cluster.local/ns/app/sa/service-payment-sa"
+    to:
+    - operation:
+        methods: ["GET"]
+        paths: ["/api/verify", "/api/status"]
+        ports: ["8080"]
+
+# Règle 6 : LSA agents → health check
+---
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-lsa-health-check
+  namespace: app
+spec:
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        principals:
+        - "cluster.local/ns/agents/sa/lsa-sa"
+    to:
+    - operation:
+        methods: ["GET"]
+        paths: ["/health", "/metrics"]
+        ports: ["8080"]

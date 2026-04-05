@@ -1,0 +1,63 @@
+---
+apiVersion: security.istio.io/v1beta1
+kind: RequestAuthentication
+metadata:
+  name: jwt-keycloak
+  namespace: app
+spec:
+  jwtRules:
+  - issuer: "http://keycloak.security.svc.cluster.local:8080/realms/zero-trust-project"
+    jwksUri: "http://keycloak.security.svc.cluster.local:8080/realms/zero-trust-project/protocol/openid-connect/certs"
+    audiences:
+    - "zero-trust-client"
+    forwardOriginalToken: true
+
+---
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: require-jwt-service-auth
+  namespace: app
+spec:
+  selector:
+    matchLabels:
+      app: service-auth
+  action: ALLOW
+  rules:
+  - to:
+    - operation:
+        methods: ["POST"]
+        paths: ["/api/login"]
+        ports: ["8080"]
+  - from:
+    - source:
+        requestPrincipals: ["*"]
+    to:
+    - operation:
+        methods: ["GET", "POST"]
+        paths: ["/api/verify", "/api/status"]
+        ports: ["8080"]
+
+---
+apiVersion: security.istio.io/v1beta1
+kind: AuthorizationPolicy
+metadata:
+  name: require-admin-role
+  namespace: app
+spec:
+  selector:
+    matchLabels:
+      app: service-auth
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        requestPrincipals: ["*"]
+    when:
+    - key: request.auth.claims[realm_access][roles]
+      values: ["admin"]
+    to:
+    - operation:
+        methods: ["GET", "POST", "DELETE"]
+        paths: ["/api/admin/*"]
+        ports: ["8080"]
