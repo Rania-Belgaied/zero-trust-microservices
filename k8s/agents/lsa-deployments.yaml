@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
       - name: lsa
-        image: lsa-agent:1.0
+        image: lsa-agent:2.0
         imagePullPolicy: Never
         ports:
         - containerPort: 9090
@@ -39,6 +39,13 @@ spec:
             secretKeyRef:
               name: keycloak-lsa-secret
               key: client_secret
+        - name: DATASET_PATH
+          value: "/data/security_dataset.csv"
+        - name: ATTACK_TYPE
+          value: "none"
+        volumeMounts:
+        - name: dataset
+          mountPath: /data
         resources:
           requests:
             memory: "64Mi"
@@ -46,6 +53,10 @@ spec:
           limits:
             memory: "128Mi"
             cpu: "200m"
+        volumes:
+        - name: dataset
+          persistentVolumeClaim:
+            claimName: dataset-pvc
 ---
 apiVersion: v1
 kind: Service
@@ -79,7 +90,7 @@ spec:
     spec:
       containers:
       - name: lsa
-        image: lsa-agent:1.0
+        image: lsa-agent:2.0
         imagePullPolicy: Never
         ports:
         - containerPort: 9090
@@ -101,6 +112,13 @@ spec:
             secretKeyRef:
               name: keycloak-lsa-secret
               key: client_secret
+        - name: DATASET_PATH
+          value: "/data/security_dataset.csv"
+        - name: ATTACK_TYPE
+          value: "none"
+        volumeMounts:
+        - name: dataset
+          mountPath: /data
         resources:
           requests:
             memory: "64Mi"
@@ -108,6 +126,10 @@ spec:
           limits:
             memory: "128Mi"
             cpu: "200m"
+      volumes:
+      - name: dataset
+        persistentVolumeClaim:
+          claimName: dataset-pvc
 ---
 apiVersion: v1
 kind: Service
@@ -141,7 +163,7 @@ spec:
     spec:
       containers:
       - name: lsa
-        image: lsa-agent:1.0
+        image: lsa-agent:2.0
         imagePullPolicy: Never
         ports:
         - containerPort: 9090
@@ -163,6 +185,13 @@ spec:
             secretKeyRef:
               name: keycloak-lsa-secret
               key: client_secret
+        - name: DATASET_PATH
+          value: "/data/security_dataset.csv"
+        - name: ATTACK_TYPE
+          value: "none"
+        volumeMounts:
+        - name: dataset
+          mountPath: /data
         resources:
           requests:
             memory: "64Mi"
@@ -170,6 +199,10 @@ spec:
           limits:
             memory: "128Mi"
             cpu: "200m"
+      volumes:
+      - name: dataset
+        persistentVolumeClaim:
+          claimName: dataset-pvc
 ---
 apiVersion: v1
 kind: Service
@@ -203,7 +236,7 @@ spec:
     spec:
       containers:
       - name: lsa
-        image: lsa-agent:1.0
+        image: lsa-agent:2.0
         imagePullPolicy: Never
         ports:
         - containerPort: 9090
@@ -225,6 +258,13 @@ spec:
             secretKeyRef:
               name: keycloak-lsa-secret
               key: client_secret
+        - name: DATASET_PATH
+          value: "/data/security_dataset.csv"
+        - name: ATTACK_TYPE
+          value: "none"
+        volumeMounts:
+        - name: dataset
+          mountPath: /data
         resources:
           requests:
             memory: "64Mi"
@@ -232,6 +272,10 @@ spec:
           limits:
             memory: "128Mi"
             cpu: "200m"
+      volumes:
+      - name: dataset
+        persistentVolumeClaim:
+          claimName: dataset-pvc
 ---
 apiVersion: v1
 kind: Service

@@ -1,0 +1,67 @@
+{
+  "method": "AHP + EWM Combined",
+  "description": "Poids hybrides : 0.6×AHP (Saaty 1980, NIST SP 800-207) + 0.40×EWM (Shannon 1948). CR=0.0057 < 0.10.",
+  "w1_C": 0.241,
+  "w2_I": 0.2232,
+  "w3_B": 0.3116,
+  "w4_P": 0.1436,
+  "w5_R": 0.0807,
+  "threshold": 0.5,
+  "alpha": 0.6,
+  "ahp_weights": {
+    "C": 0.3243,
+    "I": 0.1887,
+    "B": 0.3243,
+    "P": 0.1058,
+    "R": 0.0569
+  },
+  "ewm_weights": {
+    "C": 0.1161,
+    "I": 0.2749,
+    "B": 0.2925,
+    "P": 0.2002,
+    "R": 0.1163
+  },
+  "ewm_entropies": {
+    "C": 0.996412,
+    "I": 0.991503,
+    "B": 0.990961,
+    "P": 0.993814,
+    "R": 0.996405
+  },
+  "ewm_divergences": {
+    "C": 0.003588,
+    "I": 0.008497,
+    "B": 0.009039,
+    "P": 0.006186,
+    "R": 0.003595
+  },
+  "consistency_ratio": 0.0057,
+  "lambda_max": 5.0254,
+  "initial_weights": {
+    "C": 0.25,
+    "I": 0.2,
+    "B": 0.25,
+    "P": 0.2,
+    "R": 0.1
+  },
+  "rf_importances": {
+    "C": 0.1092,
+    "I": 0.234,
+    "B": 0.3368,
+    "P": 0.2141,
+    "R": 0.1059
+  },
+  "constraints": {
+    "min_weight": 0.05,
+    "max_weight": 0.5,
+    "sum_to_one": true
+  },
+  "references": [
+    "Saaty, T.L. (1980). The Analytic Hierarchy Process. McGraw-Hill.",
+    "Shannon, C.E. (1948). A Mathematical Theory of Communication. Bell System Technical Journal.",
+    "NIST SP 800-207 (2020). Zero Trust Architecture. NIST.",
+    "Deng, H. et al. (2000). Combining AHP and EWM for MCDM. Systems Engineering & Electronics.",
+    "CIS Controls v8 (2021). Center for Internet Security."
+  ]
+}

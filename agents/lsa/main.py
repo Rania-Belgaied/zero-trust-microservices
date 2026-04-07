@@ -8,6 +8,7 @@ import httpx
 from prometheus_client import Gauge, Counter, start_http_server
 from collectors import DataCollector
 from scorer import SecurityScorer
+from dataset_logger import init_dataset, log_sample
 
 logging.basicConfig(
     level=logging.INFO,
@@ -83,7 +84,10 @@ async def run_collection_loop(
 
             COLLECT_RUNS.labels(service=TARGET_SERVICE).inc()
 
-            # 4. Envoyer le score au CCA
+            # 4. Logger pour le dataset
+            log_sample(TARGET_SERVICE, components, score.total, score.status)
+
+            # 5. Envoyer le score au CCA
             await send_score_to_cca(score)
 
             logger.info(
@@ -134,6 +138,7 @@ async def main():
     scorer    = SecurityScorer(service_name=TARGET_SERVICE)
 
     logger.info(f'LSA démarré pour {TARGET_SERVICE}')
+    init_dataset()
     logger.info(f'Intervalle de collecte: {COLLECT_INTERVAL}s')
     logger.info(f'CCA URL: {CCA_URL}')
 
