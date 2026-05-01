@@ -1,19 +1,27 @@
----
+# ─────────────────────────────────────────────────────────────────────────────
+# lsa-deployments.yaml — VERSION DYNAMIQUE
+# Chaque service a 2 LSA : un par contexte (ctx-a et ctx-b)
+# Le LSA envoie le champ "service" au format "service-name:context"
+# ─────────────────────────────────────────────────────────────────────────────
+
+# ══════════════════════════════════════════
 # LSA pour service-auth
+# ══════════════════════════════════════════
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: lsa-service-auth
+  name: lsa-service-auth-ctx-a
   namespace: agents
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: lsa-service-auth
+      app: lsa-service-auth-ctx-a
   template:
     metadata:
       labels:
-        app: lsa-service-auth
+        app: lsa-service-auth-ctx-a
     spec:
       containers:
       - name: lsa
@@ -23,7 +31,7 @@ spec:
         - containerPort: 9090
         env:
         - name: TARGET_SERVICE
-          value: "service-auth"
+          value: "service-auth:ctx-a"    # ← format "service:context"
         - name: CCA_URL
           value: "http://cca.agents.svc.cluster.local:8080"
         - name: OPA_URL
@@ -47,46 +55,85 @@ spec:
         - name: dataset
           mountPath: /data
         resources:
-          requests:
-            memory: "64Mi"
-            cpu: "50m"
-          limits:
-            memory: "128Mi"
-            cpu: "200m"
+          requests: { memory: "64Mi", cpu: "50m" }
+          limits: { memory: "128Mi", cpu: "200m" }
       volumes:
       - name: dataset
         persistentVolumeClaim:
           claimName: dataset-pvc
 ---
-apiVersion: v1
-kind: Service
+apiVersion: apps/v1
+kind: Deployment
 metadata:
-  name: lsa-service-auth
+  name: lsa-service-auth-ctx-b
   namespace: agents
 spec:
+  replicas: 1
   selector:
-    app: lsa-service-auth
-  ports:
-  - name: metrics
-    port: 9090
-    targetPort: 9090
+    matchLabels:
+      app: lsa-service-auth-ctx-b
+  template:
+    metadata:
+      labels:
+        app: lsa-service-auth-ctx-b
+    spec:
+      containers:
+      - name: lsa
+        image: lsa-agent:2.0
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 9091
+        env:
+        - name: TARGET_SERVICE
+          value: "service-auth:ctx-b"    # ← contexte b
+        - name: CCA_URL
+          value: "http://cca.agents.svc.cluster.local:8080"
+        - name: OPA_URL
+          value: "http://opa.security.svc.cluster.local:8181"
+        - name: PROMETHEUS_URL
+          value: "http://prometheus-kube-prometheus-prometheus.monitoring.svc.cluster.local:9090"
+        - name: KEYCLOAK_URL
+          value: "http://keycloak.security.svc.cluster.local:8080"
+        - name: COLLECT_INTERVAL
+          value: "30"
+        - name: KEYCLOAK_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: keycloak-lsa-secret
+              key: client_secret
+        - name: DATASET_PATH
+          value: "/data/security_dataset.csv"
+        - name: ATTACK_TYPE
+          value: "none"
+        volumeMounts:
+        - name: dataset
+          mountPath: /data
+        resources:
+          requests: { memory: "64Mi", cpu: "50m" }
+          limits: { memory: "128Mi", cpu: "200m" }
+      volumes:
+      - name: dataset
+        persistentVolumeClaim:
+          claimName: dataset-pvc
 
----
+# ══════════════════════════════════════════
 # LSA pour service-orders
+# ══════════════════════════════════════════
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: lsa-service-orders
+  name: lsa-service-orders-ctx-a
   namespace: agents
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: lsa-service-orders
+      app: lsa-service-orders-ctx-a
   template:
     metadata:
       labels:
-        app: lsa-service-orders
+        app: lsa-service-orders-ctx-a
     spec:
       containers:
       - name: lsa
@@ -96,7 +143,7 @@ spec:
         - containerPort: 9090
         env:
         - name: TARGET_SERVICE
-          value: "service-orders"
+          value: "service-orders:ctx-a"
         - name: CCA_URL
           value: "http://cca.agents.svc.cluster.local:8080"
         - name: OPA_URL
@@ -120,46 +167,85 @@ spec:
         - name: dataset
           mountPath: /data
         resources:
-          requests:
-            memory: "64Mi"
-            cpu: "50m"
-          limits:
-            memory: "128Mi"
-            cpu: "200m"
+          requests: { memory: "64Mi", cpu: "50m" }
+          limits: { memory: "128Mi", cpu: "200m" }
       volumes:
       - name: dataset
         persistentVolumeClaim:
           claimName: dataset-pvc
 ---
-apiVersion: v1
-kind: Service
+apiVersion: apps/v1
+kind: Deployment
 metadata:
-  name: lsa-service-orders
+  name: lsa-service-orders-ctx-b
   namespace: agents
 spec:
+  replicas: 1
   selector:
-    app: lsa-service-orders
-  ports:
-  - name: metrics
-    port: 9090
-    targetPort: 9090
+    matchLabels:
+      app: lsa-service-orders-ctx-b
+  template:
+    metadata:
+      labels:
+        app: lsa-service-orders-ctx-b
+    spec:
+      containers:
+      - name: lsa
+        image: lsa-agent:2.0
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 9091
+        env:
+        - name: TARGET_SERVICE
+          value: "service-orders:ctx-b"
+        - name: CCA_URL
+          value: "http://cca.agents.svc.cluster.local:8080"
+        - name: OPA_URL
+          value: "http://opa.security.svc.cluster.local:8181"
+        - name: PROMETHEUS_URL
+          value: "http://prometheus-kube-prometheus-prometheus.monitoring.svc.cluster.local:9090"
+        - name: KEYCLOAK_URL
+          value: "http://keycloak.security.svc.cluster.local:8080"
+        - name: COLLECT_INTERVAL
+          value: "30"
+        - name: KEYCLOAK_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: keycloak-lsa-secret
+              key: client_secret
+        - name: DATASET_PATH
+          value: "/data/security_dataset.csv"
+        - name: ATTACK_TYPE
+          value: "none"
+        volumeMounts:
+        - name: dataset
+          mountPath: /data
+        resources:
+          requests: { memory: "64Mi", cpu: "50m" }
+          limits: { memory: "128Mi", cpu: "200m" }
+      volumes:
+      - name: dataset
+        persistentVolumeClaim:
+          claimName: dataset-pvc
 
----
+# ══════════════════════════════════════════
 # LSA pour service-payment
+# ══════════════════════════════════════════
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: lsa-service-payment
+  name: lsa-service-payment-ctx-a
   namespace: agents
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: lsa-service-payment
+      app: lsa-service-payment-ctx-a
   template:
     metadata:
       labels:
-        app: lsa-service-payment
+        app: lsa-service-payment-ctx-a
     spec:
       containers:
       - name: lsa
@@ -169,7 +255,7 @@ spec:
         - containerPort: 9090
         env:
         - name: TARGET_SERVICE
-          value: "service-payment"
+          value: "service-payment:ctx-a"
         - name: CCA_URL
           value: "http://cca.agents.svc.cluster.local:8080"
         - name: OPA_URL
@@ -193,46 +279,85 @@ spec:
         - name: dataset
           mountPath: /data
         resources:
-          requests:
-            memory: "64Mi"
-            cpu: "50m"
-          limits:
-            memory: "128Mi"
-            cpu: "200m"
+          requests: { memory: "64Mi", cpu: "50m" }
+          limits: { memory: "128Mi", cpu: "200m" }
       volumes:
       - name: dataset
         persistentVolumeClaim:
           claimName: dataset-pvc
 ---
-apiVersion: v1
-kind: Service
+apiVersion: apps/v1
+kind: Deployment
 metadata:
-  name: lsa-service-payment
+  name: lsa-service-payment-ctx-b
   namespace: agents
 spec:
+  replicas: 1
   selector:
-    app: lsa-service-payment
-  ports:
-  - name: metrics
-    port: 9090
-    targetPort: 9090
+    matchLabels:
+      app: lsa-service-payment-ctx-b
+  template:
+    metadata:
+      labels:
+        app: lsa-service-payment-ctx-b
+    spec:
+      containers:
+      - name: lsa
+        image: lsa-agent:2.0
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 9091
+        env:
+        - name: TARGET_SERVICE
+          value: "service-payment:ctx-b"
+        - name: CCA_URL
+          value: "http://cca.agents.svc.cluster.local:8080"
+        - name: OPA_URL
+          value: "http://opa.security.svc.cluster.local:8181"
+        - name: PROMETHEUS_URL
+          value: "http://prometheus-kube-prometheus-prometheus.monitoring.svc.cluster.local:9090"
+        - name: KEYCLOAK_URL
+          value: "http://keycloak.security.svc.cluster.local:8080"
+        - name: COLLECT_INTERVAL
+          value: "30"
+        - name: KEYCLOAK_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: keycloak-lsa-secret
+              key: client_secret
+        - name: DATASET_PATH
+          value: "/data/security_dataset.csv"
+        - name: ATTACK_TYPE
+          value: "none"
+        volumeMounts:
+        - name: dataset
+          mountPath: /data
+        resources:
+          requests: { memory: "64Mi", cpu: "50m" }
+          limits: { memory: "128Mi", cpu: "200m" }
+      volumes:
+      - name: dataset
+        persistentVolumeClaim:
+          claimName: dataset-pvc
 
----
+# ══════════════════════════════════════════
 # LSA pour service-notification
+# ══════════════════════════════════════════
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: lsa-service-notification
+  name: lsa-service-notification-ctx-a
   namespace: agents
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: lsa-service-notification
+      app: lsa-service-notification-ctx-a
   template:
     metadata:
       labels:
-        app: lsa-service-notification
+        app: lsa-service-notification-ctx-a
     spec:
       containers:
       - name: lsa
@@ -242,7 +367,7 @@ spec:
         - containerPort: 9090
         env:
         - name: TARGET_SERVICE
-          value: "service-notification"
+          value: "service-notification:ctx-a"
         - name: CCA_URL
           value: "http://cca.agents.svc.cluster.local:8080"
         - name: OPA_URL
@@ -266,26 +391,63 @@ spec:
         - name: dataset
           mountPath: /data
         resources:
-          requests:
-            memory: "64Mi"
-            cpu: "50m"
-          limits:
-            memory: "128Mi"
-            cpu: "200m"
+          requests: { memory: "64Mi", cpu: "50m" }
+          limits: { memory: "128Mi", cpu: "200m" }
       volumes:
       - name: dataset
         persistentVolumeClaim:
           claimName: dataset-pvc
 ---
-apiVersion: v1
-kind: Service
+apiVersion: apps/v1
+kind: Deployment
 metadata:
-  name: lsa-service-notification
+  name: lsa-service-notification-ctx-b
   namespace: agents
 spec:
+  replicas: 1
   selector:
-    app: lsa-service-notification
-  ports:
-  - name: metrics
-    port: 9090
-    targetPort: 9090
+    matchLabels:
+      app: lsa-service-notification-ctx-b
+  template:
+    metadata:
+      labels:
+        app: lsa-service-notification-ctx-b
+    spec:
+      containers:
+      - name: lsa
+        image: lsa-agent:2.0
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 9091
+        env:
+        - name: TARGET_SERVICE
+          value: "service-notification:ctx-b"
+        - name: CCA_URL
+          value: "http://cca.agents.svc.cluster.local:8080"
+        - name: OPA_URL
+          value: "http://opa.security.svc.cluster.local:8181"
+        - name: PROMETHEUS_URL
+          value: "http://prometheus-kube-prometheus-prometheus.monitoring.svc.cluster.local:9090"
+        - name: KEYCLOAK_URL
+          value: "http://keycloak.security.svc.cluster.local:8080"
+        - name: COLLECT_INTERVAL
+          value: "30"
+        - name: KEYCLOAK_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: keycloak-lsa-secret
+              key: client_secret
+        - name: DATASET_PATH
+          value: "/data/security_dataset.csv"
+        - name: ATTACK_TYPE
+          value: "none"
+        volumeMounts:
+        - name: dataset
+          mountPath: /data
+        resources:
+          requests: { memory: "64Mi", cpu: "50m" }
+          limits: { memory: "128Mi", cpu: "200m" }
+      volumes:
+      - name: dataset
+        persistentVolumeClaim:
+          claimName: dataset-pvc

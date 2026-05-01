@@ -1,3 +1,12 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# deployments.yaml — VERSION DYNAMIQUE
+# Chaque service a 2 instances : ctx-a (principal) et ctx-b (secours)
+# Le CCA bascule entre elles via patch du selector du Service
+# ─────────────────────────────────────────────────────────────────────────────
+
+# ═══════════════════════════════════════════════════════
+# SERVICE-AUTH
+# ═══════════════════════════════════════════════════════
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -5,20 +14,26 @@ metadata:
   name: service-auth-sa
   namespace: app
 ---
+# Instance CTX-A (principal)
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: service-auth
+  name: service-auth-ctx-a
   namespace: app
+  labels:
+    app: service-auth
+    context: ctx-a
 spec:
   replicas: 1
   selector:
     matchLabels:
       app: service-auth
+      context: ctx-a
   template:
     metadata:
       labels:
         app: service-auth
+        context: ctx-a
     spec:
       serviceAccountName: service-auth-sa
       containers:
@@ -28,18 +43,52 @@ spec:
         ports:
         - containerPort: 8080
         livenessProbe:
-          httpGet:
-            path: /health
-            port: 8080
+          httpGet: { path: /health, port: 8080 }
           initialDelaySeconds: 10
           periodSeconds: 30
         readinessProbe:
-          httpGet:
-            path: /health
-            port: 8080
+          httpGet: { path: /health, port: 8080 }
           initialDelaySeconds: 5
           periodSeconds: 10
 ---
+# Instance CTX-B (secours)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: service-auth-ctx-b
+  namespace: app
+  labels:
+    app: service-auth
+    context: ctx-b
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: service-auth
+      context: ctx-b
+  template:
+    metadata:
+      labels:
+        app: service-auth
+        context: ctx-b
+    spec:
+      serviceAccountName: service-auth-sa
+      containers:
+      - name: service-auth
+        image: service-auth:1.0       # même image
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 8080
+        livenessProbe:
+          httpGet: { path: /health, port: 8080 }
+          initialDelaySeconds: 10
+          periodSeconds: 30
+        readinessProbe:
+          httpGet: { path: /health, port: 8080 }
+          initialDelaySeconds: 5
+          periodSeconds: 10
+---
+# Service avec selector dynamique — ctx-a actif par défaut
 apiVersion: v1
 kind: Service
 metadata:
@@ -48,10 +97,15 @@ metadata:
 spec:
   selector:
     app: service-auth
+    context: ctx-a          # ← le CCA modifie cette valeur
   ports:
   - name: http
     port: 8080
     targetPort: 8080
+
+# ═══════════════════════════════════════════════════════
+# SERVICE-ORDERS
+# ═══════════════════════════════════════════════════════
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -62,17 +116,22 @@ metadata:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: service-orders
+  name: service-orders-ctx-a
   namespace: app
+  labels:
+    app: service-orders
+    context: ctx-a
 spec:
   replicas: 1
   selector:
     matchLabels:
       app: service-orders
+      context: ctx-a
   template:
     metadata:
       labels:
         app: service-orders
+        context: ctx-a
     spec:
       serviceAccountName: service-orders-sa
       containers:
@@ -82,15 +141,47 @@ spec:
         ports:
         - containerPort: 8080
         livenessProbe:
-          httpGet:
-            path: /health
-            port: 8080
+          httpGet: { path: /health, port: 8080 }
           initialDelaySeconds: 10
           periodSeconds: 30
         readinessProbe:
-          httpGet:
-            path: /health
-            port: 8080
+          httpGet: { path: /health, port: 8080 }
+          initialDelaySeconds: 5
+          periodSeconds: 10
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: service-orders-ctx-b
+  namespace: app
+  labels:
+    app: service-orders
+    context: ctx-b
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: service-orders
+      context: ctx-b
+  template:
+    metadata:
+      labels:
+        app: service-orders
+        context: ctx-b
+    spec:
+      serviceAccountName: service-orders-sa
+      containers:
+      - name: service-orders
+        image: service-orders:1.0
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 8080
+        livenessProbe:
+          httpGet: { path: /health, port: 8080 }
+          initialDelaySeconds: 10
+          periodSeconds: 30
+        readinessProbe:
+          httpGet: { path: /health, port: 8080 }
           initialDelaySeconds: 5
           periodSeconds: 10
 ---
@@ -102,10 +193,15 @@ metadata:
 spec:
   selector:
     app: service-orders
+    context: ctx-a
   ports:
   - name: http
     port: 8080
     targetPort: 8080
+
+# ═══════════════════════════════════════════════════════
+# SERVICE-PAYMENT
+# ═══════════════════════════════════════════════════════
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -116,17 +212,22 @@ metadata:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: service-payment
+  name: service-payment-ctx-a
   namespace: app
+  labels:
+    app: service-payment
+    context: ctx-a
 spec:
   replicas: 1
   selector:
     matchLabels:
       app: service-payment
+      context: ctx-a
   template:
     metadata:
       labels:
         app: service-payment
+        context: ctx-a
     spec:
       serviceAccountName: service-payment-sa
       containers:
@@ -136,15 +237,47 @@ spec:
         ports:
         - containerPort: 8080
         livenessProbe:
-          httpGet:
-            path: /health
-            port: 8080
+          httpGet: { path: /health, port: 8080 }
           initialDelaySeconds: 10
           periodSeconds: 30
         readinessProbe:
-          httpGet:
-            path: /health
-            port: 8080
+          httpGet: { path: /health, port: 8080 }
+          initialDelaySeconds: 5
+          periodSeconds: 10
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: service-payment-ctx-b
+  namespace: app
+  labels:
+    app: service-payment
+    context: ctx-b
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: service-payment
+      context: ctx-b
+  template:
+    metadata:
+      labels:
+        app: service-payment
+        context: ctx-b
+    spec:
+      serviceAccountName: service-payment-sa
+      containers:
+      - name: service-payment
+        image: service-payment:1.0
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 8080
+        livenessProbe:
+          httpGet: { path: /health, port: 8080 }
+          initialDelaySeconds: 10
+          periodSeconds: 30
+        readinessProbe:
+          httpGet: { path: /health, port: 8080 }
           initialDelaySeconds: 5
           periodSeconds: 10
 ---
@@ -156,10 +289,15 @@ metadata:
 spec:
   selector:
     app: service-payment
+    context: ctx-a
   ports:
   - name: http
     port: 8080
     targetPort: 8080
+
+# ═══════════════════════════════════════════════════════
+# SERVICE-NOTIFICATION
+# ═══════════════════════════════════════════════════════
 ---
 apiVersion: v1
 kind: ServiceAccount
@@ -170,17 +308,22 @@ metadata:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: service-notification
+  name: service-notification-ctx-a
   namespace: app
+  labels:
+    app: service-notification
+    context: ctx-a
 spec:
   replicas: 1
   selector:
     matchLabels:
       app: service-notification
+      context: ctx-a
   template:
     metadata:
       labels:
         app: service-notification
+        context: ctx-a
     spec:
       serviceAccountName: service-notification-sa
       containers:
@@ -190,15 +333,47 @@ spec:
         ports:
         - containerPort: 8080
         livenessProbe:
-          httpGet:
-            path: /health
-            port: 8080
+          httpGet: { path: /health, port: 8080 }
           initialDelaySeconds: 10
           periodSeconds: 30
         readinessProbe:
-          httpGet:
-            path: /health
-            port: 8080
+          httpGet: { path: /health, port: 8080 }
+          initialDelaySeconds: 5
+          periodSeconds: 10
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: service-notification-ctx-b
+  namespace: app
+  labels:
+    app: service-notification
+    context: ctx-b
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: service-notification
+      context: ctx-b
+  template:
+    metadata:
+      labels:
+        app: service-notification
+        context: ctx-b
+    spec:
+      serviceAccountName: service-notification-sa
+      containers:
+      - name: service-notification
+        image: service-notification:1.0
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 8080
+        livenessProbe:
+          httpGet: { path: /health, port: 8080 }
+          initialDelaySeconds: 10
+          periodSeconds: 30
+        readinessProbe:
+          httpGet: { path: /health, port: 8080 }
           initialDelaySeconds: 5
           periodSeconds: 10
 ---
@@ -210,6 +385,7 @@ metadata:
 spec:
   selector:
     app: service-notification
+    context: ctx-a
   ports:
   - name: http
     port: 8080

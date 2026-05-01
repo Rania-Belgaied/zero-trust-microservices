@@ -22,6 +22,13 @@ CCA_URL          = os.getenv('CCA_URL', 'http://cca.agents.svc.cluster.local:808
 COLLECT_INTERVAL = int(os.getenv('COLLECT_INTERVAL', '30'))
 METRICS_PORT     = int(os.getenv('METRICS_PORT', '9090'))
 
+# parser service et contexte
+if ':' in TARGET_SERVICE:
+    _SERVICE_NAME, _CONTEXT = TARGET_SERVICE.split(':', 1)
+else:
+    _SERVICE_NAME = TARGET_SERVICE
+    _CONTEXT = 'ctx-a'
+
 # ── Métriques Prometheus ──────────────────────────────────────
 SCORE_GAUGE = Gauge(
     'security_score',
@@ -103,9 +110,9 @@ async def run_collection_loop(
 
 async def send_score_to_cca(score):
     try:
-        async with httpx.AsyncClient(timeout=5.0) as client:
+        async with httpx.AsyncClient(timeout=15.0) as client:
             payload = {
-                'service':    score.service_name,
+                'service':    TARGET_SERVICE,  # ex: "service-payment:ctx-a"
                 'score':      score.total,
                 'components': {
                     'C': score.C,
