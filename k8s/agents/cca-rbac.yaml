@@ -9,11 +9,36 @@ rules:
 - apiGroups: [""]
   resources: ["services"]
   verbs: ["get", "patch"]
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list"]
+- apiGroups: ["apps"]
+  resources: ["deployments"]
+  verbs: ["get", "create", "delete"]
+
+# RoleBinding pour namespace app (Deployments applicatifs + Services)
 ---
 apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
+kind: RoleBinding
 metadata:
-  name: cca-isolation-binding
+  name: cca-app-binding
+  namespace: app
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cca-isolation-role
+subjects:
+- kind: ServiceAccount
+  name: lsa-agent-sa
+  namespace: agents
+
+# RoleBinding pour namespace agents (Deployments LSA)
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: cca-agents-binding
+  namespace: agents
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
