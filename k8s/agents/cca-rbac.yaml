@@ -15,6 +15,9 @@ rules:
 - apiGroups: ["apps"]
   resources: ["deployments"]
   verbs: ["get", "create", "delete"]
+- apiGroups: ["coordination.k8s.io"]
+  resources: ["leases"]
+  verbs: ["get", "create", "patch"]
 
 # RoleBinding pour namespace app (Deployments applicatifs + Services)
 ---

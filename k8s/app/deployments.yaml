@@ -38,7 +38,7 @@ spec:
       serviceAccountName: service-auth-sa
       containers:
       - name: service-auth
-        image: service-auth:1.0
+        image: service-auth:4.0
         imagePullPolicy: Never
         ports:
         - containerPort: 8080
@@ -75,7 +75,7 @@ spec:
       serviceAccountName: service-auth-sa
       containers:
       - name: service-auth
-        image: service-auth:1.0       # même image
+        image: service-auth:4.0       # même image
         imagePullPolicy: Never
         ports:
         - containerPort: 8080
@@ -136,7 +136,7 @@ spec:
       serviceAccountName: service-orders-sa
       containers:
       - name: service-orders
-        image: service-orders:1.0
+        image: service-orders:4.0
         imagePullPolicy: Never
         ports:
         - containerPort: 8080
@@ -172,7 +172,7 @@ spec:
       serviceAccountName: service-orders-sa
       containers:
       - name: service-orders
-        image: service-orders:1.0
+        image: service-orders:4.0
         imagePullPolicy: Never
         ports:
         - containerPort: 8080
@@ -232,7 +232,7 @@ spec:
       serviceAccountName: service-payment-sa
       containers:
       - name: service-payment
-        image: service-payment:1.0
+        image: service-payment:4.0
         imagePullPolicy: Never
         ports:
         - containerPort: 8080
@@ -268,7 +268,7 @@ spec:
       serviceAccountName: service-payment-sa
       containers:
       - name: service-payment
-        image: service-payment:1.0
+        image: service-payment:4.0
         imagePullPolicy: Never
         ports:
         - containerPort: 8080
@@ -328,7 +328,7 @@ spec:
       serviceAccountName: service-notification-sa
       containers:
       - name: service-notification
-        image: service-notification:1.0
+        image: service-notification:4.0
         imagePullPolicy: Never
         ports:
         - containerPort: 8080
@@ -364,7 +364,7 @@ spec:
       serviceAccountName: service-notification-sa
       containers:
       - name: service-notification
-        image: service-notification:1.0
+        image: service-notification:4.0
         imagePullPolicy: Never
         ports:
         - containerPort: 8080

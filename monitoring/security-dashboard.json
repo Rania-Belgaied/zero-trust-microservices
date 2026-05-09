@@ -1,35 +1,68 @@
 {
   "title": "Zero-Trust Security Dashboard",
   "uid": "zero-trust-main",
+  "schemaVersion": 36,
+  "version": 4,
   "timezone": "browser",
   "refresh": "15s",
-  "time": {"from": "now-30m", "to": "now"},
+  "time": {
+    "from": "now-30m",
+    "to": "now"
+  },
   "panels": [
     {
       "id": 1,
       "title": "🛡️ Score de sécurité — Vue globale",
       "type": "stat",
-      "gridPos": {"h": 4, "w": 24, "x": 0, "y": 0},
-      "targets": [{
-        "expr": "security_score_total",
-        "legendFormat": "{{service}}"
-      }],
+      "gridPos": {
+        "h": 4,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "targets": [
+        {
+          "expr": "avg by (service) (security_score_total{status=\"HEALTHY\"})",
+          "legendFormat": "{{service}}",
+          "instant": true
+        }
+      ],
       "options": {
         "colorMode": "background",
         "graphMode": "area",
-        "reduceOptions": {"calcs": ["lastNotNull"]}
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
       },
       "fieldConfig": {
         "defaults": {
-          "min": 0, "max": 1,
+          "min": 0,
+          "max": 1,
+          "decimals": 2,
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              {"color": "red", "value": 0},
-              {"color": "orange", "value": 0.5},
-              {"color": "green", "value": 0.8}
+              {
+                "color": "red",
+                "value": 0
+              },
+              {
+                "color": "orange",
+                "value": 0.5
+              },
+              {
+                "color": "green",
+                "value": 0.8
+              }
             ]
-          }
+          },
+          "mappings": []
         }
       }
     },
@@ -37,45 +70,113 @@
       "id": 2,
       "title": "📈 Évolution des scores (30 min)",
       "type": "timeseries",
-      "gridPos": {"h": 8, "w": 16, "x": 0, "y": 4},
-      "targets": [{
-        "expr": "security_score_total",
-        "legendFormat": "{{service}} [{{status}}]"
-      }],
+      "gridPos": {
+        "h": 8,
+        "w": 16,
+        "x": 0,
+        "y": 4
+      },
+      "targets": [
+        {
+          "expr": "avg by (service) (security_score_total{status=\"HEALTHY\"})",
+          "legendFormat": "{{service}}"
+        }
+      ],
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
       "fieldConfig": {
         "defaults": {
-          "min": 0, "max": 1,
+          "min": 0,
+          "max": 1,
+          "decimals": 3,
+          "color": {
+            "mode": "palette-classic"
+          },
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              {"color": "red", "value": 0},
-              {"color": "orange", "value": 0.5},
-              {"color": "green", "value": 0.8}
+              {
+                "color": "red",
+                "value": 0
+              },
+              {
+                "color": "orange",
+                "value": 0.5
+              },
+              {
+                "color": "green",
+                "value": 0.8
+              }
             ]
           },
-          "custom": {"lineWidth": 2, "fillOpacity": 10}
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "auto",
+            "spanNulls": false
+          }
         }
       }
     },
     {
       "id": 3,
-      "title": "⚠️ Services isolés (score < 0.5)",
+      "title": "⚠️ Services dégradés (score < 0.5)",
       "type": "stat",
-      "gridPos": {"h": 8, "w": 8, "x": 16, "y": 4},
-      "targets": [{
-        "expr": "security_score_total < 0.5",
-        "legendFormat": "🚨 {{service}}"
-      }],
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 4
+      },
+      "targets": [
+        {
+          "expr": "avg by (service) (security_score_total{status=\"HEALTHY\"}) < 0.5",
+          "legendFormat": "🚨 {{service}}",
+          "instant": true
+        }
+      ],
       "options": {
         "colorMode": "background",
-        "noValue": "✅ Aucun service isolé"
+        "graphMode": "none",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "noValue": "✅ Tous les services sont sains"
       },
       "fieldConfig": {
         "defaults": {
-          "min": 0, "max": 1,
+          "min": 0,
+          "max": 1,
+          "decimals": 2,
           "thresholds": {
             "mode": "absolute",
-            "steps": [{"color": "red", "value": 0}]
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 0
+              }
+            ]
+          },
+          "noValue": "✅ Tous les services sont sains",
+          "color": {
+            "mode": "thresholds"
           }
         }
       }
@@ -84,18 +185,57 @@
       "id": 4,
       "title": "🔐 Composante I — Intégrité (violations OPA)",
       "type": "timeseries",
-      "gridPos": {"h": 7, "w": 12, "x": 0, "y": 12},
-      "targets": [{
-        "expr": "security_score{component=\"I\"}",
-        "legendFormat": "{{service}}"
-      }],
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 0,
+        "y": 12
+      },
+      "targets": [
+        {
+          "expr": "avg by (service) (security_score{component=\"I\"})",
+          "legendFormat": "{{service}}"
+        }
+      ],
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
       "fieldConfig": {
-        "defaults": {"min": 0, "max": 1,
-          "thresholds": {"mode": "absolute", "steps": [
-            {"color": "red", "value": 0},
-            {"color": "orange", "value": 0.7},
-            {"color": "green", "value": 0.9}
-          ]}
+        "defaults": {
+          "min": 0,
+          "max": 1,
+          "decimals": 3,
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": 0
+              },
+              {
+                "color": "orange",
+                "value": 0.7
+              },
+              {
+                "color": "green",
+                "value": 0.9
+              }
+            ]
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8
+          }
         }
       }
     },
@@ -103,65 +243,161 @@
       "id": 5,
       "title": "🔒 Composante C — Confidentialité (mTLS)",
       "type": "timeseries",
-      "gridPos": {"h": 7, "w": 12, "x": 12, "y": 12},
-      "targets": [{
-        "expr": "security_score{component=\"C\"}",
-        "legendFormat": "{{service}}"
-      }],
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 12
+      },
+      "targets": [
+        {
+          "expr": "avg by (service) (security_score{component=\"C\"})",
+          "legendFormat": "{{service}}"
+        }
+      ],
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
       "fieldConfig": {
-        "defaults": {"min": 0, "max": 1,
-          "thresholds": {"mode": "absolute", "steps": [
-            {"color": "red", "value": 0},
-            {"color": "orange", "value": 0.7},
-            {"color": "green", "value": 0.9}
-          ]}
+        "defaults": {
+          "min": 0,
+          "max": 1,
+          "decimals": 3,
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": 0
+              },
+              {
+                "color": "orange",
+                "value": 0.7
+              },
+              {
+                "color": "green",
+                "value": 0.9
+              }
+            ]
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8
+          }
         }
       }
     },
     {
       "id": 6,
-      "title": "🎯 Détail composantes C/I/B/P/R par service",
+      "title": "🎯 Détail composantes C / I / B / P / R par service",
       "type": "bargauge",
-      "gridPos": {"h": 7, "w": 24, "x": 0, "y": 19},
-      "targets": [{
-        "expr": "security_score",
-        "legendFormat": "{{service}} — {{component}}"
-      }],
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 19
+      },
+      "targets": [
+        {
+          "expr": "avg by (service, component) (security_score)",
+          "legendFormat": "{{service}} — {{component}}",
+          "instant": true
+        }
+      ],
       "options": {
         "orientation": "horizontal",
-        "reduceOptions": {"calcs": ["lastNotNull"]}
+        "displayMode": "gradient",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
       },
       "fieldConfig": {
         "defaults": {
-          "min": 0, "max": 1,
-          "thresholds": {"mode": "absolute", "steps": [
-            {"color": "red", "value": 0},
-            {"color": "orange", "value": 0.5},
-            {"color": "green", "value": 0.8}
-          ]}
+          "min": 0,
+          "max": 1,
+          "decimals": 2,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": 0
+              },
+              {
+                "color": "orange",
+                "value": 0.5
+              },
+              {
+                "color": "green",
+                "value": 0.8
+              }
+            ]
+          }
         }
       }
     },
     {
       "id": 7,
-      "title": "📊 Scores CCA (vue agrégée)",
+      "title": "📊 Score CCA agrégé par service",
       "type": "gauge",
-      "gridPos": {"h": 7, "w": 12, "x": 0, "y": 26},
-      "targets": [{
-        "expr": "cca_service_score",
-        "legendFormat": "{{service}}"
-      }],
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 0,
+        "y": 27
+      },
+      "targets": [
+        {
+          "expr": "avg by (service) (security_score_total{status=\"HEALTHY\"})",
+          "legendFormat": "{{service}}",
+          "instant": true
+        }
+      ],
       "options": {
-        "reduceOptions": {"calcs": ["lastNotNull"]}
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        }
       },
       "fieldConfig": {
         "defaults": {
-          "min": 0, "max": 1,
-          "thresholds": {"mode": "absolute", "steps": [
-            {"color": "red", "value": 0},
-            {"color": "orange", "value": 0.5},
-            {"color": "green", "value": 0.8}
-          ]}
+          "min": 0,
+          "max": 1,
+          "decimals": 2,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": 0
+              },
+              {
+                "color": "orange",
+                "value": 0.5
+              },
+              {
+                "color": "green",
+                "value": 0.8
+              }
+            ]
+          }
         }
       }
     },
@@ -169,25 +405,206 @@
       "id": 8,
       "title": "📋 Table — État détaillé des services",
       "type": "table",
-      "gridPos": {"h": 7, "w": 12, "x": 12, "y": 26},
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 27
+      },
       "targets": [
         {
-          "expr": "security_score_total",
-          "legendFormat": "Score total — {{service}}",
-          "instant": true
+          "expr": "avg by (service) (security_score_total{status=\"HEALTHY\"})",
+          "legendFormat": "Score total",
+          "instant": true,
+          "refId": "A"
         },
         {
-          "expr": "security_score{component=\"I\"}",
-          "legendFormat": "Intégrité — {{service}}",
-          "instant": true
+          "expr": "avg by (service) (security_score{component=\"I\"})",
+          "legendFormat": "Intégrité (I)",
+          "instant": true,
+          "refId": "B"
         },
         {
-          "expr": "security_score{component=\"C\"}",
-          "legendFormat": "Confidentialité — {{service}}",
-          "instant": true
+          "expr": "avg by (service) (security_score{component=\"C\"})",
+          "legendFormat": "Confidentialité (C)",
+          "instant": true,
+          "refId": "C"
+        },
+        {
+          "expr": "avg by (service) (security_score{component=\"B\"})",
+          "legendFormat": "Behaviour (B)",
+          "instant": true,
+          "refId": "D"
+        },
+        {
+          "expr": "avg by (service) (security_score{component=\"P\"})",
+          "legendFormat": "Policy (P)",
+          "instant": true,
+          "refId": "E"
+        },
+        {
+          "expr": "avg by (service) (security_score{component=\"R\"})",
+          "legendFormat": "Resilience (R)",
+          "instant": true,
+          "refId": "F"
         }
       ],
-      "options": {"sortBy": [{"displayName": "Score total", "desc": true}]}
+      "options": {
+        "sortBy": [
+          {
+            "displayName": "Score total",
+            "desc": true
+          }
+        ],
+        "footer": {
+          "show": false
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "decimals": 3,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": 0
+              },
+              {
+                "color": "orange",
+                "value": 0.5
+              },
+              {
+                "color": "green",
+                "value": 0.8
+              }
+            ]
+          },
+          "custom": {
+            "displayMode": "color-background"
+          }
+        }
+      }
+    },
+    {
+      "id": 9,
+      "title": "🔁 Composante B — Comportement réseau",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 0,
+        "y": 34
+      },
+      "targets": [
+        {
+          "expr": "avg by (service) (security_score{component=\"B\"})",
+          "legendFormat": "{{service}}"
+        }
+      ],
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "min": 0,
+          "max": 1,
+          "decimals": 3,
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": 0
+              },
+              {
+                "color": "orange",
+                "value": 0.7
+              },
+              {
+                "color": "green",
+                "value": 0.9
+              }
+            ]
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8
+          }
+        }
+      }
+    },
+    {
+      "id": 10,
+      "title": "🛠️ Composante P — Politique (OPA) & R — Résilience (Falco)",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 34
+      },
+      "targets": [
+        {
+          "expr": "avg by (service) (security_score{component=\"P\"})",
+          "legendFormat": "{{service}} — P"
+        },
+        {
+          "expr": "avg by (service) (security_score{component=\"R\"})",
+          "legendFormat": "{{service}} — R"
+        }
+      ],
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "min": 0,
+          "max": 1,
+          "decimals": 3,
+          "color": {
+            "mode": "palette-classic"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": 0
+              },
+              {
+                "color": "orange",
+                "value": 0.7
+              },
+              {
+                "color": "green",
+                "value": 0.9
+              }
+            ]
+          },
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 8
+          }
+        }
+      }
     }
   ]
 }

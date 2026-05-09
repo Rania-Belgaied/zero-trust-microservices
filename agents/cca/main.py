@@ -10,12 +10,14 @@ import json
 import ssl
 import urllib.request
 import asyncio
+import os
+import socket
 
 logging.basicConfig(level=logging.INFO,
     format='%(asctime)s [CCA] %(levelname)s: %(message)s')
 logger = logging.getLogger('cca')
 
-app = FastAPI(title='Central Composition Agent', version='3.1.0')
+app = FastAPI(title='Central Composition Agent', version='3.2.0')
 
 class ScoreReport(BaseModel):
     service: str
@@ -76,6 +78,169 @@ CCA_ACTIVE_CONTEXT = Gauge(
     'Contexte actif par service (0=ctx-a, 1=ctx-b)',
     ['service']
 )
+
+# ─── Leader Election ──────────────────────────────────────────────────────────
+# Identite unique de ce pod — injectee par Kubernetes via env var
+POD_NAME = os.getenv('POD_NAME', socket.gethostname())
+IS_LEADER = False          # True = ce pod est le primary
+LEASE_NAME = "cca-leader"
+LEASE_NAMESPACE = "agents"
+LEASE_DURATION = 30       # secondes avant expiration du lease
+RENEW_INTERVAL = 8         # frequence de renouvellement en secondes
+
+def make_ssl_ctx():
+    """Cree un contexte SSL sans verification de certificat (cluster interne)."""
+    c = ssl.create_default_context()
+    c.check_hostname = False
+    c.verify_mode = ssl.CERT_NONE
+    return c
+
+async def try_acquire_lease() -> bool:
+    """
+    Tente d'acquerir ou renouveler le Lease Kubernetes.
+    Retourne True si ce pod est le leader apres l'operation.
+    """
+    token = await get_k8s_token()
+    ssl_c = make_ssl_ctx()
+    now = datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S.%f') + 'Z'
+
+    # ── Lire le Lease actuel ──────────────────────────────────────────────
+    try:
+        get_req = urllib.request.Request(
+            f"{KUBERNETES_API}/apis/coordination.k8s.io/v1"
+            f"/namespaces/{LEASE_NAMESPACE}/leases/{LEASE_NAME}",
+            headers={"Authorization": f"Bearer {token}"},
+            method='GET'
+        )
+        lease = json.loads(
+            urllib.request.urlopen(get_req, context=ssl_c).read().decode()
+        )
+
+        holder = lease["spec"].get("holderIdentity", "")
+        renew_str = lease["spec"].get("renewTime", "1970-01-01T00:00:00Z")
+
+        # Normaliser le format de la date (enlever les microsecondes)
+        renew_str_clean = renew_str[:19].replace('T', 'T')
+        renew_dt = datetime.strptime(renew_str_clean, '%Y-%m-%dT%H:%M:%S')
+        age = (datetime.utcnow() - renew_dt).total_seconds()
+
+        # ── Cas 1 : je suis deja le holder -> renouveler ──────────────────
+        if holder == POD_NAME:
+            patch = {
+                "spec": {
+                    "holderIdentity": POD_NAME,
+                    "leaseDurationSeconds": LEASE_DURATION,
+                    "renewTime": now
+                }
+            }
+            patch_req = urllib.request.Request(
+                f"{KUBERNETES_API}/apis/coordination.k8s.io/v1"
+                f"/namespaces/{LEASE_NAMESPACE}/leases/{LEASE_NAME}",
+                data=json.dumps(patch).encode(),
+                headers={
+                    "Authorization": f"Bearer {token}",
+                    "Content-Type": "application/merge-patch+json"
+                },
+                method='PATCH'
+            )
+            urllib.request.urlopen(patch_req, context=ssl_c)
+            return True  # je reste leader
+
+        # ── Cas 2 : un autre pod est holder mais le lease est expire ──────
+        elif age > LEASE_DURATION:
+            logger.warning(
+                f"Lease expire (holder={holder}, age={age:.1f}s) — "
+                f"{POD_NAME} tente d'acquerir le leadership"
+            )
+            patch = {
+                "spec": {
+                    "holderIdentity": POD_NAME,
+                    "leaseDurationSeconds": LEASE_DURATION,
+                    "acquireTime": now,
+                    "renewTime": now
+                }
+            }
+            patch_req = urllib.request.Request(
+                f"{KUBERNETES_API}/apis/coordination.k8s.io/v1"
+                f"/namespaces/{LEASE_NAMESPACE}/leases/{LEASE_NAME}",
+                data=json.dumps(patch).encode(),
+                headers={
+                    "Authorization": f"Bearer {token}",
+                    "Content-Type": "application/merge-patch+json"
+                },
+                method='PATCH'
+            )
+            urllib.request.urlopen(patch_req, context=ssl_c)
+            return True  # j'ai pris le leadership
+
+        # ── Cas 3 : un autre pod est holder et le lease est valide ────────
+        else:
+            return False  # je reste backup
+
+    # ── Lease inexistant -> le creer et devenir leader ────────────────────
+    except urllib.error.HTTPError as e:
+        if e.code == 404:
+            logger.info(f"Lease absent — {POD_NAME} le cree et devient leader")
+            lease_body = {
+                "apiVersion": "coordination.k8s.io/v1",
+                "kind": "Lease",
+                "metadata": {
+                    "name": LEASE_NAME,
+                    "namespace": LEASE_NAMESPACE
+                },
+                "spec": {
+                    "holderIdentity": POD_NAME,
+                    "leaseDurationSeconds": LEASE_DURATION,
+                    "acquireTime": now,
+                    "renewTime": now
+                }
+            }
+            create_req = urllib.request.Request(
+                f"{KUBERNETES_API}/apis/coordination.k8s.io/v1"
+                f"/namespaces/{LEASE_NAMESPACE}/leases",
+                data=json.dumps(lease_body).encode(),
+                headers={
+                    "Authorization": f"Bearer {token}",
+                    "Content-Type": "application/json"
+                },
+                method='POST'
+            )
+            urllib.request.urlopen(create_req, context=ssl_c)
+            return True
+        raise  # autre erreur HTTP -> propager
+
+async def leader_election_loop():
+    """
+    Boucle permanente de leader election.
+    Tourne dans les deux pods (primary et backup) en parallele.
+    """
+    global IS_LEADER
+    # Delai aleatoire au demarrage pour eviter la competition simultanee
+    import random
+    await asyncio.sleep(random.uniform(0, 3))
+
+    while True:
+        try:
+            is_leader_now = await try_acquire_lease()
+
+            if is_leader_now and not IS_LEADER:
+                # Transition backup -> primary
+                IS_LEADER = True
+                logger.warning(
+                    f"LEADER ELECTION : {POD_NAME} devient PRIMARY"
+                )
+            elif not is_leader_now and IS_LEADER:
+                # Transition primary -> backup (ne devrait pas arriver normalement)
+                IS_LEADER = False
+                logger.warning(
+                    f"LEADER ELECTION : {POD_NAME} perd le leadership"
+                )
+
+        except Exception as e:
+            logger.error(f"Erreur leader election: {e}")
+            # En cas d'erreur -> rester dans l'etat actuel
+
+        await asyncio.sleep(RENEW_INTERVAL)
 
 async def get_k8s_token():
     with open('/var/run/secrets/kubernetes.io/serviceaccount/token') as f:
@@ -444,12 +609,20 @@ def select_best_context(service_name: str, excluded_context: str) -> Optional[st
     )
     return best
 
+@app.on_event("startup")
+async def startup():
+    """Lance la boucle de leader election au demarrage du pod."""
+    logger.info(f"Demarrage CCA pod={POD_NAME} — attente leadership...")
+    asyncio.create_task(leader_election_loop())
+
 @app.get('/health')
 def health():
     return {
         'status': 'healthy',
         'service': 'CCA',
-        'version': '3.1.0',
+        'version': '3.2.0',
+        'role': 'primary' if IS_LEADER else 'backup',   # NOUVEAU
+        'pod_name': POD_NAME,                            # NOUVEAU
         'services_tracked': len(scores_table),
         'isolated_services': list(isolated_services),
         'active_routing': active_routing  
@@ -459,6 +632,21 @@ def health():
 # et orchestre le basculement dynamique après isolation
 @app.post('/api/scores')
 async def receive_score(report: ScoreReport):
+    # NOUVEAU : le backup stocke le score mais n'agit pas
+    if not IS_LEADER:
+        if ':' in report.service:
+            service_name, context = report.service.split(':', 1)
+        else:
+            service_name, context = report.service, 'ctx-a'
+        key = f"{service_name}:{context}"
+        scores_table[key] = report  # sync de l'etat pour prise de relai rapide
+        logger.debug(f"[BACKUP] Score stocke (non traite) : {report.service}")
+        return {
+            "received": True,
+            "role": "backup",
+            "service": service_name,
+            "score": report.score
+        }
 
     # parser le champ service au format "service-payment:ctx-a"
     if ':' in report.service:
@@ -573,6 +761,20 @@ def get_routing_state():
     return {
         "routing": result,
         "routing_history": routing_history[-20:]
+    }
+
+@app.get('/api/leader')
+def get_leader_status():
+    """Affiche l'etat du leader election pour debug et monitoring."""
+    token_sync = asyncio.get_event_loop().run_until_complete(get_k8s_token()) \
+        if False else None  # non bloquant
+    return {
+        "pod_name": POD_NAME,
+        "is_leader": IS_LEADER,
+        "role": "primary" if IS_LEADER else "backup",
+        "lease_name": LEASE_NAME,
+        "lease_duration_seconds": LEASE_DURATION,
+        "renew_interval_seconds": RENEW_INTERVAL
     }
 
 # compose_workflow utilise le contexte actif pour chaque service
